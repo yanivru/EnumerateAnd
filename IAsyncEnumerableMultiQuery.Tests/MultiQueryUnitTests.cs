@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using System;
 
 namespace IAsyncEnumerableMultiQuery.Tests
 {
@@ -19,34 +20,62 @@ namespace IAsyncEnumerableMultiQuery.Tests
         [TestMethod]
         public async Task Query_TwoQueries_OneEnumeration()
         {
-            IAsyncEnumerable<int> a = new OnlyOnce(AsyncEnumerable.Range(1, 10));
+            var a = AsyncEnumerable.Range(1, 10).ToTrackingEnumerator();
             var (count, sum) = await a.Query(x => x.CountAsync(), y => y.SumAsync());
 
             Assert.AreEqual(10, count);
             Assert.AreEqual(55, sum);
+            Assert.AreEqual(10, a.History.Count);
+        }
+
+        [TestMethod]
+        public async Task Query_TwoQueriesOneShortQuery_OneEnumeration()
+        {
+            var a = AsyncEnumerable.Range(1, 10).ToTrackingEnumerator();
+            var (count, any) = await a.Query(x => x.CountAsync(), y => y.AnyAsync());
+
+            Assert.AreEqual(10, count);
+            Assert.AreEqual(10, a.History.Count);
+            Assert.IsTrue(any);
+        }
+
+        [TestMethod]
+        public async Task Query_TwoShortQueries_EnumerateOnlyWhatIsNeeded()
+        {
+            var a = AsyncEnumerable.Range(1, 10).ToTrackingEnumerator();
+            var (any, any2) = await a.Query(x => x.AnyAsync(), y => y.AnyAsync());
+
+            Assert.IsTrue(any);
+            Assert.IsTrue(any2);
+            Assert.AreEqual(1, a.History.Count);
         }
     }
 
-    class OnlyOnce : IAsyncEnumerable<int>
+    static class AsyncEnumerableBuilder
     {
-        private readonly IAsyncEnumerable<int> _inner;
-        private bool _isFirstTime = true;
-
-        public OnlyOnce(IAsyncEnumerable<int> inner)
+        public static EnumerationHistory<T> ToTrackingEnumerator<T>(this IAsyncEnumerable<T> orignal)
         {
-            _inner = inner;
+            return new EnumerationHistory<T>(orignal);
+        }
+    }
+
+    class EnumerationHistory<T> : IAsyncEnumerable<T>
+    {
+        private readonly IAsyncEnumerable<T> _original;
+        public List<T> History { get; } = new();
+
+        public EnumerationHistory(IAsyncEnumerable<T> original)
+        {
+            _original = original;
         }
 
-        public IAsyncEnumerator<int> GetAsyncEnumerator(CancellationToken cancellationToken = new())
+        public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            if (!_isFirstTime)
+            await foreach (var item in _original)
             {
-                throw new MultipleEnumerationException();
+                History.Add(item);
+                yield return item;
             }
-
-            _isFirstTime = false;
-            return _inner.GetAsyncEnumerator(cancellationToken);
-
         }
     }
 

@@ -28,7 +28,7 @@
 
     class SingleEnumerator<T> : IAsyncEnumerator<T>
     {
-        private readonly int _queryCount;
+        private int _queryCount;
         private int _waitingCount;
         private int _disposedCount = 0;
         private TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
@@ -42,20 +42,38 @@
 
         public ValueTask DisposeAsync()
         {
-            return new ValueTask();
+            var newQueryCount = Interlocked.Decrement(ref _queryCount);
+
+            if(newQueryCount == 0)
+            {
+                _innerEnumerator.DisposeAsync();
+                return ValueTask.CompletedTask;
+            }
+
+            if (newQueryCount == _waitingCount)
+            {
+                _ = MoveToNextElement();
+            }
+
+            return ValueTask.CompletedTask;
         }
 
         public async ValueTask<bool> MoveNextAsync()
         {
             if (Interlocked.Increment(ref _waitingCount) == _queryCount)
             {
-                Interlocked.Exchange(ref _waitingCount, 0);
-                var ready = _ready;
-                _ready = new TaskCompletionSource<bool>();
-                ready.SetResult(await _innerEnumerator.MoveNextAsync());
-                return await ready.Task;
+                return await MoveToNextElement();
             }
             return await _ready.Task;
+        }
+
+        private async ValueTask<bool> MoveToNextElement()
+        {
+            Interlocked.Exchange(ref _waitingCount, 0);
+            var ready = _ready;
+            _ready = new TaskCompletionSource<bool>();
+            ready.SetResult(await _innerEnumerator.MoveNextAsync());
+            return await ready.Task;
         }
 
         public T Current => _innerEnumerator.Current;
