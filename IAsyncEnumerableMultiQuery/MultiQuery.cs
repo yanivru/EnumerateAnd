@@ -11,8 +11,8 @@ namespace IAsyncEnumerableMultiQuery
 
         public static async ValueTask<TQueryResult> QueryAsync<T, TQueryResult>(this (IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask> action) prev, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult>> query)
         {
-            var lazyEnumerable = new EnumerateAndRunner<T>(prev.source, 2);
-            
+            var lazyEnumerable = new EnumerateAndRunner<T>(prev.source);
+
             var t = prev.action(lazyEnumerable);
             var t2 = query(lazyEnumerable);
 
@@ -29,28 +29,45 @@ namespace IAsyncEnumerableMultiQuery
     {
         private IAsyncEnumerable<T> _source;
         private readonly OneToManyEnumerator<T> _oneToManyEnumerator;
+        private readonly OneToManyEnumerator<T> _oneToManyEnumerator2;
+        private int _enumeratorIndex;
 
-        public EnumerateAndRunner(IAsyncEnumerable<T> source, int queryCount)
+        public EnumerateAndRunner(IAsyncEnumerable<T> source)
         {
             _source = source;
-            _oneToManyEnumerator = new OneToManyEnumerator<T>(queryCount);
+            _oneToManyEnumerator = new OneToManyEnumerator<T>();
+            _oneToManyEnumerator2 = new OneToManyEnumerator<T>();
         }
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return _oneToManyEnumerator;
+            if (_enumeratorIndex == 0)
+            {
+                _enumeratorIndex++;
+                return _oneToManyEnumerator; 
+            }
+            else
+                return _oneToManyEnumerator2;
         }
 
         public async Task RunAsync()
         {
             await foreach (var item in _source)
             {
-                if (await _oneToManyEnumerator.SetResultAsync(item))
-                {
+                bool isMoreNeeded1 = await _oneToManyEnumerator.IsReadyToRecieveMoreAsync();
+                bool isMoreNeeded2 = await _oneToManyEnumerator2.IsReadyToRecieveMoreAsync();
+
+                if(isMoreNeeded1)
+                    _oneToManyEnumerator.SetResult(item);
+                if(isMoreNeeded2)
+                    _oneToManyEnumerator2.SetResult(item);
+
+                if (!isMoreNeeded1 && !isMoreNeeded2)
                     break;
-                }
             }
-            _oneToManyEnumerator.SetNotMoreResults();
+
+            _oneToManyEnumerator.SetNoMoreResults();
+            _oneToManyEnumerator2.SetNoMoreResults();
         }
     }
 
@@ -82,47 +99,39 @@ namespace IAsyncEnumerableMultiQuery
 
     class OneToManyEnumerator<T> : IAsyncEnumerator<T>
     {
-        private int _queryCount;
-        private int _waitingCount;
-        private int _disposedCount = 0;
-        private AsyncCountdownEvent _nonReadyTargets;
-        private TaskCompletionSource<bool> _ready = new();
+        private TaskCompletionSource<bool> _isCurrentItemReady = new();
+        private TaskCompletionSource<bool> _isReadyToReceiveMore = new();
 
-        public OneToManyEnumerator(int queryCount)
+        public void SetResult(T result)
         {
-            _queryCount = queryCount;
-            _nonReadyTargets = new AsyncCountdownEvent(queryCount);
-        }
-
-        public async Task<bool> SetResultAsync(T result)
-        {
-            await _nonReadyTargets.WaitAsync();
-            _nonReadyTargets = new AsyncCountdownEvent(_queryCount);
             Current = result;
-            var prevReady = _ready;
-            _ready = new();
-            prevReady.SetResult(true);
-            return Interlocked.CompareExchange(ref _queryCount, 0, 0) == 0;
+            var prevRead = _isCurrentItemReady;
+            _isCurrentItemReady = new TaskCompletionSource<bool>();
+            prevRead.SetResult(true);
         }
-
-        public void SetNotMoreResults()
-        {
-            _nonReadyTargets = new AsyncCountdownEvent(_queryCount);
-            _ready.SetResult(false);
-        }
-
+         
         public ValueTask DisposeAsync()
         {
-            Interlocked.Decrement(ref _queryCount);
-            _nonReadyTargets.Signal();
-
+            _isReadyToReceiveMore.TrySetResult(false);
             return ValueTask.CompletedTask;
         }
 
         public async ValueTask<bool> MoveNextAsync()
         {
-            _nonReadyTargets.Signal();
-            return await _ready.Task;
+            _isReadyToReceiveMore.SetResult(true);
+            return await _isCurrentItemReady.Task;
+        }
+
+        public async ValueTask<bool> IsReadyToRecieveMoreAsync()
+        {
+            var isStillActive = await _isReadyToReceiveMore.Task;
+            _isReadyToReceiveMore = new TaskCompletionSource<bool>();
+            return isStillActive;
+        }
+
+        internal void SetNoMoreResults()
+        {
+            _isCurrentItemReady.TrySetResult(false);
         }
 
         public T Current { get; private set; }
