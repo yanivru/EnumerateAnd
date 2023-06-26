@@ -4,70 +4,97 @@ namespace IAsyncEnumerableMultiQuery
 {
     public static class EnumerateAndExtensions
     {
-        public static (IAsyncEnumerable<T>, Func<IAsyncEnumerable<T>, ValueTask>) EnumerateAnd<T>(this IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask> action)
+        public static (IAsyncEnumerable<T>, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult>>) QueryAnd<T, TQueryResult>(this IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult>> query)
         {
-            return (source, action);
+            return (source, query);
         }
 
-        public static async ValueTask<TQueryResult> QueryAsync<T, TQueryResult>(this (IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask> action) prev, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult>> query)
+        public static (IAsyncEnumerable<T>, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult1>>, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult2>>) QueryAnd<T, TQueryResult1, TQueryResult2>(this (IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult1>> query1) prev, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult2>> query)
+        {
+            return (prev.source, prev.query1, query);
+        }
+
+        public static async ValueTask<(TQueryResult1, TQueryResult2)> QueryAsync<T, TQueryResult1, TQueryResult2>(this (IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult1>> query1) prev, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult2>> query2)
         {
             var lazyEnumerable = new EnumerateAndRunner<T>(prev.source);
 
-            var t = prev.action(lazyEnumerable);
-            var t2 = query(lazyEnumerable);
+            var t = prev.query1(lazyEnumerable);
+            var t2 = query2(lazyEnumerable);
 
             await lazyEnumerable.RunAsync();
 
-            await t;
-            return await t2;
+            return (await t, await t2);
         }
 
-        //public static (IAsyncEnumerable<T>, Task<TQueryResult>, Task<TQueryResult2>) Query()
+        public static async ValueTask<(TQueryResult1, TQueryResult2, TQueryResult3)> QueryAsync<T, TQueryResult1, TQueryResult2, TQueryResult3>(this (IAsyncEnumerable<T> source, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult1>> query1, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult2>> query2) prev, Func<IAsyncEnumerable<T>, ValueTask<TQueryResult3>> query3)
+        {
+            var lazyEnumerable = new EnumerateAndRunner<T>(prev.source);
+
+            var t = prev.query1(lazyEnumerable);
+            var t2 = prev.query2(lazyEnumerable);
+            var t3 = query3(lazyEnumerable);
+
+            await lazyEnumerable.RunAsync();
+
+            return (await t, await t2, await t3);
+        }
     }
 
     internal class EnumerateAndRunner<T> : IAsyncEnumerable<T>
     {
-        private IAsyncEnumerable<T> _source;
-        private readonly OneToManyEnumerator<T> _oneToManyEnumerator;
+        private readonly IAsyncEnumerable<T> _source;
+        private readonly OneToManyEnumerator<T> _oneToManyEnumerator1;
         private readonly OneToManyEnumerator<T> _oneToManyEnumerator2;
+        private readonly OneToManyEnumerator<T> _oneToManyEnumerator3;
         private int _enumeratorIndex;
 
         public EnumerateAndRunner(IAsyncEnumerable<T> source)
         {
             _source = source;
-            _oneToManyEnumerator = new OneToManyEnumerator<T>();
+            _oneToManyEnumerator1 = new OneToManyEnumerator<T>();
             _oneToManyEnumerator2 = new OneToManyEnumerator<T>();
+            _oneToManyEnumerator3 = new OneToManyEnumerator<T>();
         }
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            if (_enumeratorIndex == 0)
+            _enumeratorIndex++;
+
+            return _enumeratorIndex switch
             {
-                _enumeratorIndex++;
-                return _oneToManyEnumerator; 
-            }
-            else
-                return _oneToManyEnumerator2;
+                1 => _oneToManyEnumerator1,
+                2 => _oneToManyEnumerator2,
+                3 => _oneToManyEnumerator3,
+                _ => throw new Exception("EnumerateAnd only supports up to 3 querys"),
+            };
         }
 
         public async Task RunAsync()
         {
+            bool isMoreNeeded1 = true;
+            bool isMoreNeeded2 = true;
+            bool isMoreNeeded3 = true;
+
             await foreach (var item in _source)
             {
-                bool isMoreNeeded1 = await _oneToManyEnumerator.IsReadyToRecieveMoreAsync();
-                bool isMoreNeeded2 = await _oneToManyEnumerator2.IsReadyToRecieveMoreAsync();
+                isMoreNeeded1 = isMoreNeeded1 && await _oneToManyEnumerator1.IsReadyToRecieveMoreAsync();
+                isMoreNeeded2 = isMoreNeeded2 && await _oneToManyEnumerator2.IsReadyToRecieveMoreAsync();
+                isMoreNeeded3 = isMoreNeeded3 && _enumeratorIndex == 3 && await _oneToManyEnumerator3.IsReadyToRecieveMoreAsync();
 
-                if(isMoreNeeded1)
-                    _oneToManyEnumerator.SetResult(item);
-                if(isMoreNeeded2)
+                if (isMoreNeeded1)
+                    _oneToManyEnumerator1.SetResult(item);
+                if (isMoreNeeded2)
                     _oneToManyEnumerator2.SetResult(item);
+                if (isMoreNeeded3)
+                    _oneToManyEnumerator3.SetResult(item);
 
-                if (!isMoreNeeded1 && !isMoreNeeded2)
+                if (!isMoreNeeded1 && !isMoreNeeded2 && !isMoreNeeded3)
                     break;
             }
 
-            _oneToManyEnumerator.SetNoMoreResults();
+            _oneToManyEnumerator1.SetNoMoreResults();
             _oneToManyEnumerator2.SetNoMoreResults();
+            _oneToManyEnumerator3.SetNoMoreResults();
         }
     }
 
@@ -109,7 +136,7 @@ namespace IAsyncEnumerableMultiQuery
             _isCurrentItemReady = new TaskCompletionSource<bool>();
             prevRead.SetResult(true);
         }
-         
+
         public ValueTask DisposeAsync()
         {
             _isReadyToReceiveMore.TrySetResult(false);
