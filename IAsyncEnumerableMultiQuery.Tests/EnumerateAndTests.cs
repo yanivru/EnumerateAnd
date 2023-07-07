@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace IAsyncEnumerableMultiQuery.Tests
+﻿namespace IAsyncEnumerableMultiQuery.Tests
 {
     [TestClass]
     public class EnumerateAndTests
@@ -34,6 +27,32 @@ namespace IAsyncEnumerableMultiQuery.Tests
             Assert.IsTrue(any);
             Assert.AreEqual(10, count);
             Assert.AreEqual(10, sourceEnumerable.History.Count);
+        }
+
+        [TestMethod]
+        public async Task QueryAnd_ShortQueries_StopsEnumeratingSourceAsync()
+        {
+            var sourceEnumerable = AsyncEnumerable.Range(1, 10).ToTrackingEnumerator();
+
+            (var any, var count) = await sourceEnumerable
+                .QueryAnd(x => x.AnyAsync())
+                .QueryAsync(x => x.FirstAsync());
+
+            Assert.IsTrue(any);
+            Assert.AreEqual(1, count);
+            Assert.AreEqual(1, sourceEnumerable.History.Count);
+        }
+
+        [TestMethod]
+        public async Task QueryAnd_ExceptionIsThrown_ExceptionPropogatedAsync()
+        {
+            var sourceEnumerable = AsyncEnumerable.Range(1, 10)
+                .Select(x => x == 1? throw new Exception("Something went wrong") : x)
+                .ToTrackingEnumerator();
+
+            await Assert.ThrowsExceptionAsync<Exception>(async () => await sourceEnumerable
+                .QueryAnd(x => x.AnyAsync())
+                .QueryAsync(x => x.FirstAsync()));
         }
 
         private static async ValueTask<bool> DoSomethingAsync(IAsyncEnumerable<int> x)
