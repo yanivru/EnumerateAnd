@@ -22,7 +22,6 @@ Any method that accepts IAsyncEnumerable as a parameter can be used:
                 .QueryAsync(x => x.CountAsync());
 
             Assert.AreEqual(10, count);
-            Assert.AreEqual(10, sourceEnumerable.History.Count);
 
             private static async ValueTask<bool> DoSomethingAsync(IAsyncEnumerable<int> x)
             {
