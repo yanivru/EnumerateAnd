@@ -44,7 +44,7 @@
         }
 
         [TestMethod]
-        public async Task QueryAnd_ExceptionIsThrown_ExceptionPropogatedAsync()
+        public async Task QueryAnd_ExceptionIsThrown_ExceptionThrownAsync()
         {
             var sourceEnumerable = AsyncEnumerable.Range(1, 10)
                 .Select(x => x == 1? throw new Exception("Something went wrong") : x)
