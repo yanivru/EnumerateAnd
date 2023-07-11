@@ -1,4 +1,6 @@
-﻿namespace IAsyncEnumerableMultiQuery.Tests
+﻿using System.Runtime.CompilerServices;
+
+namespace IAsyncEnumerableMultiQuery.Tests
 {
     [TestClass]
     public class EnumerateAndTests
@@ -53,6 +55,29 @@
             await Assert.ThrowsExceptionAsync<Exception>(async () => await sourceEnumerable
                 .QueryAnd(x => x.AnyAsync())
                 .QueryAsync(x => x.FirstAsync()));
+        }
+
+        [TestMethod]
+        public async Task QueryAnd_EnumerableWithDelay_EnumeratedCorrectly()
+        {
+            var sourceEnumerable = CreateDelayedAsyncEnumerable()
+                .ToTrackingEnumerator();
+
+            var (any, count) = await sourceEnumerable
+                .QueryAnd(x => x.AnyAsync())
+                .QueryAsync(x => x.CountAsync());
+
+            Assert.IsTrue(any);
+            Assert.AreEqual(10, count);
+        }
+
+        private async IAsyncEnumerable<int> CreateDelayedAsyncEnumerable()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Delay(10);
+                yield return i;
+            }
         }
 
         private static async ValueTask<bool> DoSomethingAsync(IAsyncEnumerable<int> x)
