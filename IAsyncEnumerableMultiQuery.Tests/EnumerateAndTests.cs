@@ -58,9 +58,9 @@ namespace IAsyncEnumerableMultiQuery.Tests
         }
 
         [TestMethod]
-        public async Task QueryAnd_EnumerableWithDelay_EnumeratedCorrectly()
+        public async Task QueryAnd_EnumerableWithDelay_EnumeratedCorrectlyAsync()
         {
-            var sourceEnumerable = CreateDelayedAsyncEnumerable()
+            var sourceEnumerable = CreateDelayedAsyncEnumerableAsync()
                 .ToTrackingEnumerator();
 
             var (any, count) = await sourceEnumerable
@@ -71,7 +71,7 @@ namespace IAsyncEnumerableMultiQuery.Tests
             Assert.AreEqual(10, count);
         }
 
-        private async IAsyncEnumerable<int> CreateDelayedAsyncEnumerable()
+        private async IAsyncEnumerable<int> CreateDelayedAsyncEnumerableAsync()
         {
             for (int i = 0; i < 10; i++)
             {

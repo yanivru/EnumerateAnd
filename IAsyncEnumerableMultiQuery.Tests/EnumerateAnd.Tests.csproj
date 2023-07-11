@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IAsyncEnumerableMultiQuery\IAsyncEnumerableMultiQuery.csproj" />
+    <ProjectReference Include="..\IAsyncEnumerableMultiQuery\EnumerateAnd.csproj" />
   </ItemGroup>
 
 </Project>
