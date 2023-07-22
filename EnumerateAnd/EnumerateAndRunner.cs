@@ -13,7 +13,7 @@
             _source = source;
             _oneToManyEnumerator1 = new OneToManyEnumerator<T>();
             _oneToManyEnumerator2 = new OneToManyEnumerator<T>();
-            _oneToManyEnumerator3 = new OneToManyEnumerator<T>();
+            //_oneToManyEnumerator3 = new OneToManyEnumerator<T>();
         }
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
