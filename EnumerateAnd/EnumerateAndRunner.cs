@@ -41,9 +41,9 @@ namespace EnumerateAnd
             {
                 while (true)
                 {
-                    isMoreNeeded1 = isMoreNeeded1 && await _oneToManyEnumerator1.IsReadyToRecieveMoreAsync();
-                    isMoreNeeded2 = isMoreNeeded2 && await _oneToManyEnumerator2.IsReadyToRecieveMoreAsync();
-                    isMoreNeeded3 = isMoreNeeded3 && _enumeratorIndex == 3 && await _oneToManyEnumerator3.IsReadyToRecieveMoreAsync();
+                    isMoreNeeded1 = isMoreNeeded1 && await _oneToManyEnumerator1.IsReadyToReceiveMoreAsync();
+                    isMoreNeeded2 = isMoreNeeded2 && await _oneToManyEnumerator2.IsReadyToReceiveMoreAsync();
+                    isMoreNeeded3 = isMoreNeeded3 && _enumeratorIndex == 3 && await _oneToManyEnumerator3.IsReadyToReceiveMoreAsync();
 
                     if (!isMoreNeeded1 && !isMoreNeeded2 && !isMoreNeeded3)
                         break;
