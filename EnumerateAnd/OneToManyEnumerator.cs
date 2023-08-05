@@ -1,4 +1,4 @@
-﻿namespace IAsyncEnumerableMultiQuery
+﻿namespace EnumerateAnd
 {
     class OneToManyEnumerator<T> : IAsyncEnumerator<T>
     {

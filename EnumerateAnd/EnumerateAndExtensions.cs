@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.Threading;
+﻿using EnumerateAnd;
+using Microsoft.VisualStudio.Threading;
 
 namespace IAsyncEnumerableMultiQuery
 {

@@ -1,4 +1,5 @@
-﻿namespace IAsyncEnumerableMultiQuery
+﻿
+namespace EnumerateAnd
 {
     internal class EnumerateAndRunner<T> : IAsyncEnumerable<T>
     {
