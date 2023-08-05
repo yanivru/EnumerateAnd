@@ -1,9 +1,10 @@
 ﻿namespace EnumerateAnd
 {
-    class OneToManyEnumerator<T> : IAsyncEnumerator<T>
+    internal class OneToManyEnumerator<T> : IAsyncEnumerator<T>
     {
         private TaskCompletionSource<bool> _isCurrentItemReady = new();
         private TaskCompletionSource<bool> _isReadyToReceiveMore = new();
+        private T? _current;
 
         public void SetResult(T result)
         {
@@ -25,7 +26,7 @@
             return await _isCurrentItemReady.Task;
         }
 
-        public async ValueTask<bool> IsReadyToRecieveMoreAsync()
+        public async ValueTask<bool> IsReadyToReceiveMoreAsync()
         {
             var isStillActive = await _isReadyToReceiveMore.Task;
             _isReadyToReceiveMore = new TaskCompletionSource<bool>();
@@ -37,6 +38,10 @@
             _isCurrentItemReady.TrySetResult(false);
         }
 
-        public T Current { get; private set; }
+        public T Current
+        {
+            get => _current ?? throw new Exception("Current is not initialized. Did you forget to call MoveNextAsync?");
+            private set => _current = value;
+        }
     }
 }
