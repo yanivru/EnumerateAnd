@@ -1,6 +1,4 @@
-﻿using IAsyncEnumerableMultiQuery.Tests;
-
-namespace EnumerateAnd.Tests
+﻿namespace EnumerateAnd.Tests
 {
     static class AsyncEnumerableBuilder
     {
