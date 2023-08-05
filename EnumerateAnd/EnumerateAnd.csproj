@@ -1,9 +1,36 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
+	<PropertyGroup>
+		<Authors>Yaniv Robinpur</Authors>
+		<Description>Runs multiples queries on an IAsyncEnumerable in one enumeration</Description>
+		<PackageProjectUrl>https://github.com/yanivru/EnumerateAnd</PackageProjectUrl>
+		<PackageTags>library, IASyncEnumeable, Multiple enumerations</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath=""/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icons8-multiple-directions-64.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="icons8-multiple-directions-64.png" Pack="true" PackagePath=""/>
+	</ItemGroup>
 </Project>
