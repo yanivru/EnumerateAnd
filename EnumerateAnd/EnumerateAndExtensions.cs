@@ -1,7 +1,4 @@
-﻿using EnumerateAnd;
-using Microsoft.VisualStudio.Threading;
-
-namespace IAsyncEnumerableMultiQuery
+﻿namespace EnumerateAnd
 {
     public static class EnumerateAndExtensions
     {

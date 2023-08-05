@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace IAsyncEnumerableMultiQuery.Tests
+﻿namespace EnumerateAnd.Tests
 {
     [TestClass]
     public class EnumerateAndTests

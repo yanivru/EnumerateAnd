@@ -1,4 +1,4 @@
-﻿namespace IAsyncEnumerableMultiQuery.Tests
+﻿namespace EnumerateAnd.Tests
 {
     class EnumerationHistory<T> : IAsyncEnumerable<T>
     {

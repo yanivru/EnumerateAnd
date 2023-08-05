@@ -1,4 +1,4 @@
-﻿namespace IAsyncEnumerableMultiQuery.Tests
+﻿namespace EnumerateAnd.Tests
 {
     internal class MultipleEnumerationException : Exception
     {
